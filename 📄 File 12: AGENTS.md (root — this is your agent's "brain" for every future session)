@@ -1,3 +1,28 @@
-<resources>
-    <string name="app_name">Discipline Engine</string>
-</resources>
+# Discipline Engine — Agent Instructions
+
+## Project
+Real-life RPG for JEE/NEET students on low-RAM Android (minSdk 29, target 4GB RAM devices like Poco M6 5G).
+Kotlin + Jetpack Compose + Room. Dark Glassmorphism theme only.
+
+## Iron Rules (never violate)
+1. PERFORMANCE BUDGET: APK < 15MB. No heavy libraries (no Firebase, no image loaders unless needed).
+2. Room DB schema changes MUST increment the version in DisciplineDatabase and add a Migration.
+3. Every RP value must match master_blueprint.json exactly (+25, +40, +30, +15, -35, -50 boss).
+4. Dark theme ONLY (BackgroundCanvas #090D16). No light theme.
+5. All new features build on DisciplineDatabase.dao() — never create a second DB.
+6. Comments: one-line plain English per function (user is a beginner).
+
+## Phase Roadmap (build only the phase I ask for)
+- Phase 1 ✅ DONE: Shell, theme, Room DB (habits, rp_events, streak_state), test RP button
+- Phase 2: Real RP/rank logic (Bronze→Conqueror thresholds), streak + miss detection
+- Phase 3: Alarm, full-screen intent, reboot resurrection receiver
+- Phase 4: Schedule creator (8A/8C logic)
+- Phase 5: Camera pushup verification (MediaPipe) + watchdogs (proximity/gyro/siren)
+- Phase 6: AccessibilityService Reels/Shorts blocker + settings guard
+- Phase 7: PW notification catcher + exam triage engine
+- Phase 8: Apple Dock + Gaussian magnification + landscape two-pane
+- Phase 9: 365-day heatmap + graphs
+- Phase 10: Device admin, hardening, polish
+
+## Build command
+./gradlew assembleDebug → APK at app/build/outputs/apk/debug/
