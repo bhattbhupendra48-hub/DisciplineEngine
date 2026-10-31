@@ -1,0 +1,17 @@
+{
+  "app_name": "Discipline Engine",
+  "target_device": "Poco M6 5G / 4GB RAM / Android 10+",
+  "rp_table": {
+    "P1_BLOCK": 40, "P2_BLOCK": 25, "P3_BLOCK": 30,
+    "P1_CLEARED": 40, "P2_CLEARED": 25, "P3_CLEARED": 30,
+    "ZERO_TEMPTATION": 15, "PENALTY": -35, "BOSS_PUSHUPS": -50
+  },
+  "ranks": [
+    {"name": "Bronze", "minRp": 0}, {"name": "Silver", "minRp": 500},
+    {"name": "Gold", "minRp": 1200}, {"name": "Platinum", "minRp": 2500},
+    {"name": "Diamond", "minRp": 4000}, {"name": "Conqueror", "minRp": 6000}
+  ],
+  "grace_period_hours": 24,
+  "boss_pushups_required": 40,
+  "blocker": {"mode": "view_hierarchy_kick", "dns_18_plus": true, "no_vpn": true}
+}
