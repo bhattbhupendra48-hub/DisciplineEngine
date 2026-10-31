@@ -1,0 +1,82 @@
+package com.bhupendra.disciplineengine.data
+
+import android.content.Context
+import androidx.room.*
+import androidx.room.Database
+import androidx.room.RoomDatabase
+
+// ─── ENTITIES ────────────────────────────────────────────────
+
+@Entity(tableName = "habits_table")
+data class HabitEntity(
+    @PrimaryKey val habitId: String,
+    val title: String,
+    val tier: String,                // AUTO_VERIFIED_GOLD | MANUAL_HONOR
+    val verificationSource: String,  // CAMERA_PUSHUP | FOCUS_TIMER | ZERO_REEL_SESSION | MANUAL
+    val rpReward: Int,
+    val isKeystone: Boolean
+)
+
+@Entity(tableName = "rp_events")
+data class RpEventEntity(
+    @PrimaryKey(autoGenerate = true) val eventId: Long = 0,
+    val timestamp: Long,
+    val source: String,      // PUSHUP_ALARM | P1_BLOCK | PW_BLOCK | ZERO_TEMPTATION | PENALTY
+    val rpDelta: Int         // +25, +40, +30, +15, -35 per blueprint
+)
+
+@Entity(tableName = "streak_state")
+data class StreakEntity(
+    @PrimaryKey val id: Int = 1,     // singleton row
+    val currentStreak: Int,
+    val bestStreak: Int,
+    val isCracked: Boolean,          // S2 Cracked Emblem (24h grace)
+    val crackedExpireAt: Long,
+    val totalRp: Long,
+    val lastMissDate: Long?
+)
+
+// ─── DAO ─────────────────────────────────────────────────────
+
+@Daointerface DisciplineDao {
+    @Query("SELECT * FROM rp_events ORDER BY timestamp DESC")
+    fun getAllRpEvents(): List<RpEventEntity>
+
+    @Insert suspend fun addRpEvent(e: RpEventEntity)
+    @Query("SELECT COALESCE(SUM(rpDelta),0) FROM rp_events")
+    suspend fun totalRp(): Long
+
+    @Query("SELECT * FROM streak_state WHERE id = 1")
+    suspend fun getStreak(): StreakEntity?
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertStreak(s: StreakEntity)
+
+    @Insert suspend fun addHabit(h: HabitEntity)
+    @Query("SELECT * FROM habits_table")
+    fun getAllHabits(): List<HabitEntity>
+}
+
+// ─── DATABASE ────────────────────────────────────────────────
+
+@Database(
+    entities = [HabitEntity::class, RpEventEntity::class, StreakEntity::class],
+    version = 1,
+    exportSchema = true
+)
+abstract class DisciplineDatabase : RoomDatabase() {
+    abstract fun dao(): DisciplineDao
+
+    companion object {
+        @Volatile private var INSTANCE: DisciplineDatabase? = null
+
+        fun get(context: Context): DisciplineDatabase =
+            INSTANCE ?: synchronized(this) {
+                INSTANCE ?: Room.databaseBuilder(
+                    context.applicationContext,
+                    DisciplineDatabase::class.java,
+                    "discipline_engine.db"
+                ).build().also { INSTANCE = it }
+            }
+    }
+}
