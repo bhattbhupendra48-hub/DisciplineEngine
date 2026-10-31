@@ -1,0 +1,17 @@
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+        maven("https://storage.googleapis.com/download.flutter.io") // not needed for flutter, safe to keep for future deps
+    }
+}
+rootProject.name = "DisciplineEngine"
+include(":app")
