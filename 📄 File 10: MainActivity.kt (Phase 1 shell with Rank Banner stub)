@@ -1,0 +1,78 @@
+package com.bhupendra.disciplineengine
+
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import com.bhupendra.disciplineengine.data.DisciplineDatabase
+import com.bhupendra.disciplineengine.data.RpEventEntity
+import com.bhupendra.disciplineengine.ui.theme.*
+import kotlinx.coroutines.launch
+
+class MainActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState {
+        super.onCreate(savedInstanceState)
+        setContent {
+            DisciplineTheme {
+                Surface(Modifier.fillMaxSize(), color = BackgroundCanvas) {
+                    DashboardScreen()
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DashboardScreen() {
+    val scope = rememberCoroutineScope()
+    val dao = DisciplineDatabase.get(appContext).dao()
+    var totalRp by remember { mutableStateOf(0L) }
+
+    Column(
+        Modifier.fillMaxSize().padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // ── RP Rank Banner (Portrait Top Section) ──
+        GlassCard {
+            Text("🛡️ DISCIPLINE ENGINE", color = CyberCyan, style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(8.dp))
+            Text("Total RP: $totalRp", color = XpRankGold, style = MaterialTheme.typography.headlineMedium)
+            Text("Rank: BRONZE", color = VerifiedEmerald)
+        }
+        Spacer(Modifier.height(16.dp))
+        GlassCard {
+            Text("✅ Complete P1 Study Block (+40 RP)", color = P1CriticalNeon)
+            Spacer(Modifier.height(8.dp))
+            Button(onClick = {
+                scope.launch {
+                    dao.addRpEvent(RpEventEntity(System.currentTimeMillis(), "P1_BLOCK", +40))
+                    totalRp = dao.totalRp()
+                }
+            }) { Text("Claim RP (Test)") }
+        }
+        Spacer(Modifier.height(16.dp))
+        Text("Phase 1 ✅ | Alarm: Phase 3 | Blocker: Phase 6",
+            color = VerifiedEmerald, style = MaterialTheme.typography.bodySmall)
+    }
+}
+
+// Placeholder glass card — real glassmorphic Canvas blur version comes in Phase 8
+@Composable
+fun GlassCard(content: @Composable ColumnScope.() -> Unit) {
+    Card( @Composable
+fun GlassCard(content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = GlassSurface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+    ) {
+        Column(Modifier.padding(16.dp), content = content)
+    }
+}
+
+       
