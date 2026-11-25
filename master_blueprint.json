@@ -1,0 +1,249 @@
+{
+  "document_type": "ANTIGRAVITY_2_0_MASTER_EXECUTION_BLUEPRINT",
+  "version": "2.0.0-FINAL",
+  "project_metadata": {
+    "app_name": "Discipline Engine: Real-Life RPG",
+    "package_name": "com.bhupendra.disciplineengine",
+    "language": "Kotlin 2.0+",
+    "ui_framework": "Jetpack Compose (Material3 + Custom Glassmorphic Canvas)",
+    "min_sdk": 29,
+    "target_sdk": 35,
+    "target_hardware_constraints": {
+      "ram_limit_idle_mb": 18,
+      "ram_limit_camera_active_mb": 65,
+      "cpu_background_polling_allowed": false,
+      "target_soc": "MediaTek Dimensity 6100+ / 4GB Physical RAM / Xiaomi HyperOS"
+    }
+  },
+  "rp_and_rank_system": {
+    "rp_table": {
+      "PUSHUP_ALARM_ON_TIME": 25,
+      "P1_DEEP_STUDY_BLOCK": 40,
+      "PW_LECTURE_DPP_BLOCK": 30,
+      "ZERO_TEMPTATION_STUDY_HOURS": 15,
+      "MISSED_P1_OR_BYPASS": -35,
+      "BOSS_PENALTY_REPAIR": -50
+    },
+    "ranks": [
+      { "name": "BRONZE", "minRp": 0 },
+      { "name": "SILVER", "minRp": 500 },
+      { "name": "GOLD", "minRp": 1200 },
+      { "name": "PLATINUM", "minRp": 2500 },
+      { "name": "DIAMOND", "minRp": 4000 },
+      { "name": "CROWN", "minRp": 5500 },
+      { "name": "ACE", "minRp": 7000 },
+      { "name": "CONQUEROR", "minRp": 9000 }
+    ],
+    "streak_mechanics": {
+      "s2_cracked_emblem_grace_hours": 24,
+      "s2_boss_penalty_pushups": 40,
+      "s2_boss_penalty_squats": 60,
+      "s5_emergency_shields_max": 2,
+      "s5_emergency_shield_earn_days": 14,
+      "illness_travel_cutoff_hour": 10
+    }
+  },
+  "global_ui_and_navigation_spec": {
+    "visual_style": {
+      "theme": "Dark Glassmorphism",
+      "background_canvas": "#090D16",
+      "glass_card_surface": "rgba(22, 30, 46, 0.72)",
+      "glass_border_stroke": "1.dp linear-gradient(#38BDF8, #6366F1, alpha=0.35)",
+      "accent_colors": {
+        "p1_critical_neon": "#F43F5E",
+        "xp_rank_gold": "#F59E0B",
+        "verified_emerald": "#10B981",
+        "cyber_cyan": "#06B6D4"
+      }
+    },
+    "responsive_orientation_architecture": {
+      "detection_mechanism": "Use LocalConfiguration.current.orientation and WindowSizeClass in Jetpack Compose.",
+      "portrait_mode_layout": {
+        "structure": "Single-column vertical scroll with fixed top Rank Header and fixed bottom Floating Apple Dock.",
+        "top_section": "RP Rank Banner (Bronze-to-Conqueror progress bar + Streak Flame/Cracked Icon + Ghost Rival live delta).",
+        "upper_middle_section": "Current Active Mission Card (Live Schedule Block + 8A Buffer bar + PW Next Action button).",
+        "lower_middle_section": "Habit Completion Rings + Reels Time Bank Balance + Live PW Notice Ticker.",
+        "bottom_section": "7-Day Mini Consistency Heatmap + Apple Magnification Dock."
+      },
+      "landscape_mode_layout": {
+        "structure": "Two-pane horizontal split (Row(Modifier.fillMaxSize())) optimized for desk/stand usage.",
+        "left_pane_45_percent": [
+          "Interactive Habit Checklist (Auto-Verified Gold Habits + Manual Honor Habits)",
+          "Scrollable Daily Schedule Timeline with live 8A Buffer & 8C Priority Triage indicators",
+          "Reels Time Bank & Dopamine Debt Ledger"
+        ],
+        "right_pane_55_percent": [
+          "5-Axis RPG Character Radar Chart & 365-Day Discipline Heatmap",
+          "PW Exam Backlog Triage Matrix & Live Notice Board",
+          "Active Focus Pomodoro / Camera Exercise Trigger Card"
+        ],
+        "bottom_overlay": "Centered Floating Apple Magnification Dock spanning 60% of landscape width."
+      }
+    },
+    "apple_dock_morphing_navigation": {
+      "dock_items": [
+        { "index": 0, "id": "nav_home", "label": "HQ & Habits", "icon": "ic_shield_home" },
+        { "index": 1, "id": "nav_schedule", "label": "8A/8C Schedule", "icon": "ic_timeline_calendar" },
+        { "index": 2, "id": "nav_pw_tracker", "label": "PW Study AI", "icon": "ic_graduation_bolt" },
+        { "index": 3, "id": "nav_camera_alarm", "label": "Pushup Arena", "icon": "ic_camera_dumbbell" },
+        { "index": 4, "id": "nav_blocker", "label": "Reel Shield", "icon": "ic_lock_radar" },
+        { "index": 5, "id": "nav_analytics", "label": "RPG Stats", "icon": "ic_pentagon_graph" }
+      ],
+      "gesture_and_physics_math": {
+        "touch_tracking_zone": "A transparent gesture track covering the dock and 36.dp below the dock (Modifier.pointerInput(Unit)).",
+        "horizontal_slide_magnification_formula": "S_i = 1.0f + 0.65f * exp(-(d * d) / (2 * sigma * sigma)) where sigma = 75.dp, clamped to [1.0f, 1.65f].",
+        "pop_out_of_line_translation": "translationY_i = -28.dp * ((S_i - 1.0f) / 0.65f).",
+        "scroll_up_to_open_trigger": "While S_i > 1.45f, when vertical deltaY < -42.dp, fire haptic tick and morph-expand module with spring(dampingRatio=0.75f, stiffness=380f)."
+      }
+    }
+  },
+  "database_schema_room_sqlite": {
+    "database_name": "discipline_engine.db",
+    "entities": [
+      {
+        "table_name": "habits_table",
+        "fields": [
+          "habitId: String (PK)",
+          "title: String",
+          "tier: Enum(AUTO_VERIFIED_GOLD, MANUAL_HONOR)",
+          "verificationSource: Enum(CAMERA_PUSHUP, FOCUS_TIMER, ZERO_REELS_BLOCKER, PW_LECTURE_SYNC, MANUAL_CHECK)",
+          "targetValue: Int",
+          "currentValue: Int",
+          "isCompletedToday: Boolean",
+          "progressiveOverloadRate: Float (default 1.10f every 7 perfect days)"
+        ]
+      },
+      {
+        "table_name": "streak_and_rpg_state",
+        "fields": [
+          "id: Int = 1 (Single Row PK)",
+          "currentStreakDays: Int",
+          "bestStreakDays: Int",
+          "streakStatus: Enum(ACTIVE_FLAME, CRACKED_PENALTY_24H, FROZEN_SICK_TRAVEL, SHATTERED_ZERO)",
+          "penaltyRepsRequiredToRepair: Int",
+          "rankPointsRP: Int",
+          "currentRankTier: Enum(BRONZE, SILVER, GOLD, PLATINUM, DIAMOND, CROWN, ACE, CONQUEROR)",
+          "earnedEmergencyShields: Int (max 2)",
+          "monthlyDarkRoomBypassTokensLeft: Int (max 2)",
+          "reelsTimeBankMinutes: Int",
+          "dopamineDebtPushups: Int",
+          "statSTR: Float",
+          "statINT: Float",
+          "statWIL: Float",
+          "statSPD: Float",
+          "statCON: Float"
+        ]
+      },
+      {
+        "table_name": "daily_schedule_blocks",
+        "fields": [
+          "blockId: String (PK)",
+          "dateEpochDay: Long",
+          "title: String",
+          "blockType: Enum(FIXED_ANCHOR, FLEX_TASK, SHOCK_ABSORBER_BUFFER_8A, TRANSITION_BREAK)",
+          "priorityTier: Enum(ANCHOR_IMMUTABLE, P1_CORE_NON_NEGOTIABLE, P2_IMPORTANT_COMPRESSIBLE, P3_BONUS_ROLLOVER)",
+          "energyTag: Enum(PEAK_DEEP_WORK, STEADY_WORK, LOW_DRAIN_ADMIN, PHYSICAL_TRAINING)",
+          "startTimeMinutesFromMidnight: Int",
+          "durationMinutes: Int",
+          "status: Enum(PENDING, ACTIVE, COMPLETED, MISSED, SALVAGED_15M_SPRINT, ROLLED_OVER)",
+          "linkedPWChapterId: String?"
+        ]
+      },
+      {
+        "table_name": "pw_syllabus_and_backlog",
+        "fields": [
+          "chapterId: String (PK)",
+          "subjectName: String",
+          "chapterName: String",
+          "totalBatchLectures: Int",
+          "completedLectures: Int",
+          "avgLectureDurationMinutes: Int",
+          "oneShotDurationMinutes: Int",
+          "notesAndPyqDurationMinutes: Int",
+          "difficultyWeightageTier: Enum(TIER1_HARD_FULL_BATCH, TIER2_MEDIUM_ONESHOT, TIER3_EASY_NOTES_PYQ)",
+          "dppCompleted: Boolean",
+          "isIncludedInUpcomingExam: Boolean"
+        ]
+      },
+      {
+        "table_name": "pw_tests_and_notices",
+        "fields": [
+          "itemId: String (PK)",
+          "itemType: Enum(LIVE_CLASS_ALERT, DPP_UPLOAD, TEST_SCHEDULED, BATCH_NOTICE)",
+          "title: String",
+          "rawNotificationText: String",
+          "timestampEpochMillis: Long",
+          "requiredChapterIdsJson: String",
+          "isTestUnlocked: Boolean",
+          "isTestCompleted: Boolean",
+          "scheduledSundaySlotDate: Long?"
+        ]
+      },
+      {
+        "table_name": "daily_analytics_log",
+        "fields": [
+          "dateEpochDay: Long (PK)",
+          "scheduleCompletionPercent: Float",
+          "habitsCompletedPercent: Float",
+          "wakeUpAlarmCompletedOnTime: Boolean",
+          "wakeUpSpeedSeconds: Int",
+          "totalPushupReps: Int",
+          "totalSquatReps: Int",
+          "blockedReelsAttemptsByHourJson: String",
+          "deepStudyMinutesByHourJson: String"
+        ]
+      }
+    ]
+  },
+  "detailed_module_specifications": {
+    "MODULE_1_KILLPROOF_CAMERA_ALARM": {
+      "pose_estimation_spec": {
+        "model": "pose_landmarker_lite.task (FP16/INT8)",
+        "camera_config": "CameraX ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST, 640x480 @ 15 FPS",
+        "plank_alignment_rule": "165 <= theta_hip <= 195 (Strict) or 145 <= theta_hip <= 200 (Beginner)",
+        "elbow_cycle": "STATE_UP (>155 deg) -> STATE_DOWN (<90 deg >= 150ms) -> STATE_UP (>155 deg)"
+      },
+      "fallbacks": {
+        "hang_watchdog_ms": 4000,
+        "min_fps_threshold": 5,
+        "empty_room_burst_cycle": "3 min ring / 2 min pause x 3 (15 min total)",
+        "dark_room_lux_threshold": 5.0,
+        "dark_room_squat_multiplier": 1.5
+      }
+    },
+    "MODULE_2_LIGHTWEIGHT_BLOCKER_AND_SETTINGS_GUARD": {
+      "no_vpn": true,
+      "monitored_packages": [
+        "com.google.android.youtube",
+        "com.instagram.android",
+        "com.snapchat.android",
+        "com.android.chrome",
+        "com.android.settings",
+        "xyz.penpencil.physicswallah"
+      ],
+      "private_dns_allowed": [
+        "family.cloudflare-dns.com",
+        "family.adguard-dns.com"
+      ],
+      "settings_guard_reaction_ms": 50,
+      "ethical_unlock_cooldown_minutes": 30,
+      "ethical_unlock_pushups": 50
+    },
+    "MODULE_3_SCHEDULE_CREATOR_8A_8C_ENGINE": {
+      "transition_buffer_minutes": 10,
+      "shock_absorber_buffer_8a_minutes": 60,
+      "p2_salvage_sprint_minutes": 15
+    },
+    "MODULE_4_BANFREE_ZERO_OPEN_PW_TRACKER": {
+      "layer_1_notification_listener": "PWNotificationCatcherService monitoring xyz.penpencil.physicswallah",
+      "layer_2_offline_batch_clock": "Auto-increments pending chapter hours after scheduled class time",
+      "layer_3_deep_link_passive_sync": "1-tap Launch Class + passive AccessibilityService completion +30 RP",
+      "exam_triage": {
+        "tier_1_hard": "Full Batch Lectures @ 1.5x + DPPs (~6 hrs/chapter)",
+        "tier_2_medium": "2-Hour One-Shot + 30-Min Active Practice (~2.5 hrs/chapter)",
+        "tier_3_easy": "Class Notes PDF + NCERT/PYQs (~1.2 hrs/chapter)"
+      },
+      "missed_test_vault": "Locks missed PW tests until required syllabus chapters are completed, then auto-slots into next Sunday Test Window."
+    }
+  }
+}

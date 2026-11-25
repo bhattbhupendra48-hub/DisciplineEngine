@@ -1,6 +1,5 @@
 package com.bhupendra.disciplineengine.ui.theme
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
@@ -8,13 +7,13 @@ import androidx.compose.ui.graphics.Color
 
 // Blueprint Global UI Spec — Dark Glassmorphism
 val BackgroundCanvas = Color(0xFF090D16)
-val P1CriticalNeon  = Color(0xFFF43F5E)
-val XpRankGold      = Color(0xFFF59E0B)
+val P1CriticalNeon = Color(0xFFF43F5E)
+val XpRankGold = Color(0xFFF59E0B)
 val VerifiedEmerald = Color(0xFF10B981)
-val CyberCyan       = Color(0xFF06B6D4)
-val GlassSurface    = Color(0xB8161E2E) // rgba(22,30,46,0.72)
-val GlassBorderTop  = Color(0x5938BDF8) // gradient endpoint 1
-val GlassBorderEnd  = Color(0x596366F1) // gradient endpoint 2
+val CyberCyan = Color(0xFF06B6D4)
+val GlassSurface = Color(0xB8161E2E) // rgba(22,30,46,0.72)
+val GlassBorderTop = Color(0x5938BDF8)
+val GlassBorderEnd = Color(0x596366F1)
 
 private val DisciplineColors = darkColorScheme(
     primary = CyberCyan,
@@ -25,9 +24,9 @@ private val DisciplineColors = darkColorScheme(
     surface = GlassSurface
 )
 
+// Applies the Dark Glassmorphism Material3 theme across the app
 @Composable
 fun DisciplineTheme(content: @Composable () -> Unit) {
-    // App is dark-first by design (blueprint: Dark Glassmorphism)
     MaterialTheme(
         colorScheme = DisciplineColors,
         content = content

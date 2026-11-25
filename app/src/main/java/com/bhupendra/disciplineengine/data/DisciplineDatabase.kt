@@ -1,11 +1,15 @@
 package com.bhupendra.disciplineengine.data
 
 import android.content.Context
-import androidx.room.*
+import androidx.room.Dao
 import androidx.room.Database
+import androidx.room.Entity
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.PrimaryKey
+import androidx.room.Query
+import androidx.room.Room
 import androidx.room.RoomDatabase
-
-// ─── ENTITIES ────────────────────────────────────────────────
 
 @Entity(tableName = "habits_table")
 data class HabitEntity(
@@ -27,7 +31,7 @@ data class RpEventEntity(
 
 @Entity(tableName = "streak_state")
 data class StreakEntity(
-    @PrimaryKey val id: Int = 1,     // singleton row
+    @PrimaryKey val id: Int = 1,
     val currentStreak: Int,
     val bestStreak: Int,
     val isCracked: Boolean,          // S2 Cracked Emblem (24h grace)
@@ -36,28 +40,36 @@ data class StreakEntity(
     val lastMissDate: Long?
 )
 
-// ─── DAO ─────────────────────────────────────────────────────
-
-@Daointerface DisciplineDao {
+@Dao
+interface DisciplineDao {
+    // Returns all logged RP events from newest to oldest
     @Query("SELECT * FROM rp_events ORDER BY timestamp DESC")
-    fun getAllRpEvents(): List<RpEventEntity>
+    suspend fun getAllRpEvents(): List<RpEventEntity>
 
-    @Insert suspend fun addRpEvent(e: RpEventEntity)
-    @Query("SELECT COALESCE(SUM(rpDelta),0) FROM rp_events")
+    // Inserts a new RP reward or penalty event
+    @Insert
+    suspend fun addRpEvent(event: RpEventEntity)
+
+    // Sums all RP deltas to calculate current total RP
+    @Query("SELECT COALESCE(SUM(rpDelta), 0) FROM rp_events")
     suspend fun totalRp(): Long
 
+    // Loads the single-row streak and rank state
     @Query("SELECT * FROM streak_state WHERE id = 1")
     suspend fun getStreak(): StreakEntity?
 
+    // Saves or updates the single-row streak state
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun upsertStreak(s: StreakEntity)
+    suspend fun upsertStreak(streak: StreakEntity)
 
-    @Insert suspend fun addHabit(h: HabitEntity)
+    // Adds a new habit definition
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun addHabit(habit: HabitEntity)
+
+    // Lists all configured habits
     @Query("SELECT * FROM habits_table")
-    fun getAllHabits(): List<HabitEntity>
+    suspend fun getAllHabits(): List<HabitEntity>
 }
-
-// ─── DATABASE ────────────────────────────────────────────────
 
 @Database(
     entities = [HabitEntity::class, RpEventEntity::class, StreakEntity::class],
@@ -68,8 +80,10 @@ abstract class DisciplineDatabase : RoomDatabase() {
     abstract fun dao(): DisciplineDao
 
     companion object {
-        @Volatile private var INSTANCE: DisciplineDatabase? = null
+        @Volatile
+        private var INSTANCE: DisciplineDatabase? = null
 
+        // Returns the singleton Room database instance
         fun get(context: Context): DisciplineDatabase =
             INSTANCE ?: synchronized(this) {
                 INSTANCE ?: Room.databaseBuilder(
