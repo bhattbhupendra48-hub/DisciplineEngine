@@ -9,6 +9,7 @@ import android.view.accessibility.AccessibilityNodeInfo
 import android.view.accessibility.AccessibilityWindowInfo
 import com.bhupendra.disciplineengine.alarm.AlarmVerifyActivity
 import com.bhupendra.disciplineengine.alarm.DirectBootAlarmStore
+import com.bhupendra.disciplineengine.data.AnalyticsRecorder
 import com.bhupendra.disciplineengine.data.DisciplineDatabase
 import com.bhupendra.disciplineengine.data.ScheduleProfileEntity
 import com.bhupendra.disciplineengine.domain.ScheduleEngine
@@ -178,6 +179,11 @@ class DisciplineAccessibilityService : AccessibilityService() {
         performGlobalAction(GLOBAL_ACTION_BACK)
 
         val blockedCount = blockerStore.incrementBlockedToday()
+        serviceScope.launch {
+            runCatching {
+                AnalyticsRecorder.recordBlockedAttempt(DisciplineDatabase.get(applicationContext).dao())
+            }
+        }
         val shieldIntent = Intent(this, BlockerShieldActivity::class.java).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
             putExtra(BlockerShieldActivity.EXTRA_REASON, reason.name)

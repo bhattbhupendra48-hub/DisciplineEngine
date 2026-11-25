@@ -69,6 +69,9 @@ class ScheduleRepository(private val dao: DisciplineDao) {
                             rpDelta = delta
                         )
                     )
+                    if (target.blockType == "FLEX_TASK") {
+                        AnalyticsRecorder.recordStudyMinutes(dao, target.durationMinutes)
+                    }
                 } else if (newStatus == "MISSED" && target.priorityTier == "P1_CORE_NON_NEGOTIABLE") {
                     dao.addRpEvent(
                         RpEventEntity(

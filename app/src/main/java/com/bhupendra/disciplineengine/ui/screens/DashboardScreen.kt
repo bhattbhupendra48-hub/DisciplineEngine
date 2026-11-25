@@ -60,9 +60,9 @@ import com.bhupendra.disciplineengine.ui.theme.XpRankGold
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
-// Renders the Phase 2 RPG dashboard in portrait or two-pane landscape layout
+// Renders the Phase 2 RPG dashboard in portrait or optional internal landscape layout
 @Composable
-fun DashboardScreen() {
+fun DashboardScreen(allowInternalSplit: Boolean = true) {
     val scope = rememberCoroutineScope()
     val repository = remember {
         DisciplineRepository(DisciplineDatabase.get(DisciplineApp.appContext).dao())
@@ -99,7 +99,8 @@ fun DashboardScreen() {
         return
     }
 
-    val isLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val isLandscape = allowInternalSplit &&
+        LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
 
     if (isLandscape) {
         Row(
