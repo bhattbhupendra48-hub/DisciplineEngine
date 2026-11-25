@@ -17,6 +17,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import com.bhupendra.disciplineengine.ui.screens.BlockerScreen
 import com.bhupendra.disciplineengine.ui.screens.DashboardScreen
+import com.bhupendra.disciplineengine.ui.screens.PwStudyScreen
 import com.bhupendra.disciplineengine.ui.screens.ScheduleScreen
 import com.bhupendra.disciplineengine.ui.theme.BackgroundCanvas
 import com.bhupendra.disciplineengine.ui.theme.DisciplineTheme
@@ -48,6 +49,12 @@ class MainActivity : ComponentActivity() {
                             NavigationBarItem(
                                 selected = selectedTab == 2,
                                 onClick = { selectedTab = 2 },
+                                icon = { Text("PW") },
+                                label = { Text("PW Study") }
+                            )
+                            NavigationBarItem(
+                                selected = selectedTab == 3,
+                                onClick = { selectedTab = 3 },
                                 icon = { Text("SH") },
                                 label = { Text("Reel Shield") }
                             )
@@ -58,6 +65,7 @@ class MainActivity : ComponentActivity() {
                         when (selectedTab) {
                             0 -> DashboardScreen()
                             1 -> ScheduleScreen()
+                            2 -> PwStudyScreen()
                             else -> BlockerScreen()
                         }
                     }

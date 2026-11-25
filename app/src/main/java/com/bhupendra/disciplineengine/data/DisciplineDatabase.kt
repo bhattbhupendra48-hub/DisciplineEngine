@@ -110,6 +110,44 @@ data class ScheduleProfileEntity(
     val dangerEndMinutes: Int = 1380        // Q7: 11:00 PM
 )
 
+@Entity(tableName = "pw_syllabus_and_backlog")
+data class PwSyllabusEntity(
+    @PrimaryKey val chapterId: String,
+    val subjectName: String,
+    val chapterName: String,
+    val totalBatchLectures: Int,
+    val completedLectures: Int,
+    val avgLectureDurationMinutes: Int = 90,
+    val oneShotDurationMinutes: Int = 120,
+    val notesAndPyqDurationMinutes: Int = 75,
+    val difficultyWeightageTier: String, // TIER1_HARD_FULL_BATCH | TIER2_MEDIUM_ONESHOT | TIER3_EASY_NOTES_PYQ
+    val dppCompleted: Boolean = false,
+    val isIncludedInUpcomingExam: Boolean = true
+)
+
+@Entity(tableName = "pw_tests_and_notices")
+data class PwNoticeTestEntity(
+    @PrimaryKey val itemId: String,
+    val itemType: String,               // LIVE_CLASS_ALERT | DPP_UPLOAD | TEST_SCHEDULED | BATCH_NOTICE
+    val title: String,
+    val rawNotificationText: String,
+    val timestampEpochMillis: Long,
+    val requiredChapterIdsJson: String = "",
+    val isTestUnlocked: Boolean = false,
+    val isTestCompleted: Boolean = false,
+    val scheduledSundaySlotDate: Long? = null
+)
+
+@Entity(tableName = "pw_batch_clock_slots")
+data class PwBatchSlotEntity(
+    @PrimaryKey val slotId: String,
+    val subjectName: String,
+    val linkedChapterId: String,
+    val dayOfWeekValue: Int,            // 1 = Monday .. 7 = Sunday
+    val classTimeMinutes: Int,          // e.g. 1140 = 7:00 PM
+    val lastProcessedEpochDay: Long? = null
+)
+
 @Dao
 interface DisciplineDao {
     // Returns all logged RP events from newest to oldest
@@ -179,6 +217,38 @@ interface DisciplineDao {
     // Deletes schedule blocks for a given day before regenerating timeline
     @Query("DELETE FROM daily_schedule_blocks WHERE dateEpochDay = :epochDay")
     suspend fun deleteScheduleForDay(epochDay: Long)
+
+    // Lists all PW syllabus chapters for backlog & exam triage
+    @Query("SELECT * FROM pw_syllabus_and_backlog ORDER BY subjectName ASC")
+    suspend fun getAllPwChapters(): List<PwSyllabusEntity>
+
+    // Inserts or updates PW chapters in bulk
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertPwChapters(chapters: List<PwSyllabusEntity>)
+
+    // Inserts or updates a single PW chapter
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertPwChapter(chapter: PwSyllabusEntity)
+
+    // Lists recent PW notices and tests newest first
+    @Query("SELECT * FROM pw_tests_and_notices ORDER BY timestampEpochMillis DESC LIMIT :limit")
+    suspend fun getRecentPwItems(limit: Int = 30): List<PwNoticeTestEntity>
+
+    // Inserts or updates PW notice or test items
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertPwItems(items: List<PwNoticeTestEntity>)
+
+    // Inserts a single PW notification item
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertPwItem(item: PwNoticeTestEntity)
+
+    // Lists offline batch clock weekly class slots
+    @Query("SELECT * FROM pw_batch_clock_slots")
+    suspend fun getPwBatchSlots(): List<PwBatchSlotEntity>
+
+    // Saves offline batch clock slots
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertPwBatchSlots(slots: List<PwBatchSlotEntity>)
 }
 
 @Database(
@@ -188,9 +258,12 @@ interface DisciplineDao {
         StreakEntity::class,
         DailyAnalyticsEntity::class,
         ScheduleBlockEntity::class,
-        ScheduleProfileEntity::class
+        ScheduleProfileEntity::class,
+        PwSyllabusEntity::class,
+        PwNoticeTestEntity::class,
+        PwBatchSlotEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 abstract class DisciplineDatabase : RoomDatabase() {
@@ -287,6 +360,56 @@ abstract class DisciplineDatabase : RoomDatabase() {
             }
         }
 
+        // Upgrades Room database schema from Phase 4 (v3) to Phase 7 (v4)
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS pw_syllabus_and_backlog (
+                        chapterId TEXT NOT NULL PRIMARY KEY,
+                        subjectName TEXT NOT NULL,
+                        chapterName TEXT NOT NULL,
+                        totalBatchLectures INTEGER NOT NULL,
+                        completedLectures INTEGER NOT NULL,
+                        avgLectureDurationMinutes INTEGER NOT NULL,
+                        oneShotDurationMinutes INTEGER NOT NULL,
+                        notesAndPyqDurationMinutes INTEGER NOT NULL,
+                        difficultyWeightageTier TEXT NOT NULL,
+                        dppCompleted INTEGER NOT NULL,
+                        isIncludedInUpcomingExam INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS pw_tests_and_notices (
+                        itemId TEXT NOT NULL PRIMARY KEY,
+                        itemType TEXT NOT NULL,
+                        title TEXT NOT NULL,
+                        rawNotificationText TEXT NOT NULL,
+                        timestampEpochMillis INTEGER NOT NULL,
+                        requiredChapterIdsJson TEXT NOT NULL,
+                        isTestUnlocked INTEGER NOT NULL,
+                        isTestCompleted INTEGER NOT NULL,
+                        scheduledSundaySlotDate INTEGER
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS pw_batch_clock_slots (
+                        slotId TEXT NOT NULL PRIMARY KEY,
+                        subjectName TEXT NOT NULL,
+                        linkedChapterId TEXT NOT NULL,
+                        dayOfWeekValue INTEGER NOT NULL,
+                        classTimeMinutes INTEGER NOT NULL,
+                        lastProcessedEpochDay INTEGER
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         // Returns the singleton Room database instance with registered migrations
         fun get(context: Context): DisciplineDatabase =
             INSTANCE ?: synchronized(this) {
@@ -295,7 +418,7 @@ abstract class DisciplineDatabase : RoomDatabase() {
                     DisciplineDatabase::class.java,
                     "discipline_engine.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { INSTANCE = it }
             }
