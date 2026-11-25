@@ -76,6 +76,40 @@ data class DailyAnalyticsEntity(
     val deepStudyMinutesByHourJson: String = "[]"
 )
 
+@Entity(tableName = "daily_schedule_blocks")
+data class ScheduleBlockEntity(
+    @PrimaryKey val blockId: String,
+    val dateEpochDay: Long,
+    val title: String,
+    val blockType: String,      // FIXED_ANCHOR | FLEX_TASK | SHOCK_ABSORBER_BUFFER_8A | TRANSITION_BREAK
+    val priorityTier: String,   // ANCHOR_IMMUTABLE | P1_CORE_NON_NEGOTIABLE | P2_IMPORTANT_COMPRESSIBLE | P3_BONUS_ROLLOVER
+    val energyTag: String,      // PEAK_DEEP_WORK | STEADY_WORK | LOW_DRAIN_ADMIN | PHYSICAL_TRAINING
+    val startTimeMinutesFromMidnight: Int,
+    val durationMinutes: Int,
+    val status: String,         // PENDING | ACTIVE | COMPLETED | MISSED | SALVAGED_15M_SPRINT | ROLLED_OVER
+    val linkedPWChapterId: String? = null
+)
+
+@Entity(tableName = "schedule_profile")
+data class ScheduleProfileEntity(
+    @PrimaryKey val id: Int = 1,
+    val wakeUpMinutes: Int = 330,           // Q1: 5:30 AM
+    val sleepMinutes: Int = 1380,           // Q1: 11:00 PM
+    val coachingStartMinutes: Int = 480,    // Q2: 8:00 AM
+    val coachingEndMinutes: Int = 810,      // Q2: 1:30 PM
+    val sportsStartMinutes: Int = 1080,     // Q3: 6:00 PM
+    val sportsEndMinutes: Int = 1140,       // Q3: 7:00 PM
+    val lunchMinutes: Int = 825,            // Q4: 1:45 PM
+    val dinnerMinutes: Int = 1260,          // Q4: 9:00 PM
+    val peakFocusStartMinutes: Int = 360,   // Q5: 6:00 AM
+    val afternoonDipStartMinutes: Int = 870,// Q5: 2:30 PM
+    val p1TargetMinutes: Int = 120,         // Q6: P1 Deep Study
+    val p2TargetMinutes: Int = 90,          // Q6: P2 PW / Practice
+    val p3TargetMinutes: Int = 45,          // Q6: P3 Bonus Revision
+    val dangerStartMinutes: Int = 1290,     // Q7: 9:30 PM
+    val dangerEndMinutes: Int = 1380        // Q7: 11:00 PM
+)
+
 @Dao
 interface DisciplineDao {
     // Returns all logged RP events from newest to oldest
@@ -125,6 +159,26 @@ interface DisciplineDao {
     // Loads recent daily analytics logs ordered newest first
     @Query("SELECT * FROM daily_analytics_log ORDER BY dateEpochDay DESC LIMIT :limit")
     suspend fun getRecentAnalytics(limit: Int): List<DailyAnalyticsEntity>
+
+    // Loads the user's 7-question schedule onboarding profile
+    @Query("SELECT * FROM schedule_profile WHERE id = 1")
+    suspend fun getScheduleProfile(): ScheduleProfileEntity?
+
+    // Saves or updates the 7-question schedule profile
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertScheduleProfile(profile: ScheduleProfileEntity)
+
+    // Lists all schedule blocks for a specific day ordered chronologically
+    @Query("SELECT * FROM daily_schedule_blocks WHERE dateEpochDay = :epochDay ORDER BY startTimeMinutesFromMidnight ASC")
+    suspend fun getScheduleForDay(epochDay: Long): List<ScheduleBlockEntity>
+
+    // Replaces or saves schedule blocks in bulk
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertScheduleBlocks(blocks: List<ScheduleBlockEntity>)
+
+    // Deletes schedule blocks for a given day before regenerating timeline
+    @Query("DELETE FROM daily_schedule_blocks WHERE dateEpochDay = :epochDay")
+    suspend fun deleteScheduleForDay(epochDay: Long)
 }
 
 @Database(
@@ -132,9 +186,11 @@ interface DisciplineDao {
         HabitEntity::class,
         RpEventEntity::class,
         StreakEntity::class,
-        DailyAnalyticsEntity::class
+        DailyAnalyticsEntity::class,
+        ScheduleBlockEntity::class,
+        ScheduleProfileEntity::class
     ],
-    version = 2,
+    version = 3,
     exportSchema = true
 )
 abstract class DisciplineDatabase : RoomDatabase() {
@@ -187,6 +243,50 @@ abstract class DisciplineDatabase : RoomDatabase() {
             }
         }
 
+        // Upgrades Room database schema from Phase 2 (v2) to Phase 4 (v3)
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS daily_schedule_blocks (
+                        blockId TEXT NOT NULL PRIMARY KEY,
+                        dateEpochDay INTEGER NOT NULL,
+                        title TEXT NOT NULL,
+                        blockType TEXT NOT NULL,
+                        priorityTier TEXT NOT NULL,
+                        energyTag TEXT NOT NULL,
+                        startTimeMinutesFromMidnight INTEGER NOT NULL,
+                        durationMinutes INTEGER NOT NULL,
+                        status TEXT NOT NULL,
+                        linkedPWChapterId TEXT
+                    )
+                    """.trimIndent()
+                )
+                db.execSQL(
+                    """
+                    CREATE TABLE IF NOT EXISTS schedule_profile (
+                        id INTEGER NOT NULL PRIMARY KEY,
+                        wakeUpMinutes INTEGER NOT NULL,
+                        sleepMinutes INTEGER NOT NULL,
+                        coachingStartMinutes INTEGER NOT NULL,
+                        coachingEndMinutes INTEGER NOT NULL,
+                        sportsStartMinutes INTEGER NOT NULL,
+                        sportsEndMinutes INTEGER NOT NULL,
+                        lunchMinutes INTEGER NOT NULL,
+                        dinnerMinutes INTEGER NOT NULL,
+                        peakFocusStartMinutes INTEGER NOT NULL,
+                        afternoonDipStartMinutes INTEGER NOT NULL,
+                        p1TargetMinutes INTEGER NOT NULL,
+                        p2TargetMinutes INTEGER NOT NULL,
+                        p3TargetMinutes INTEGER NOT NULL,
+                        dangerStartMinutes INTEGER NOT NULL,
+                        dangerEndMinutes INTEGER NOT NULL
+                    )
+                    """.trimIndent()
+                )
+            }
+        }
+
         // Returns the singleton Room database instance with registered migrations
         fun get(context: Context): DisciplineDatabase =
             INSTANCE ?: synchronized(this) {
@@ -195,7 +295,7 @@ abstract class DisciplineDatabase : RoomDatabase() {
                     DisciplineDatabase::class.java,
                     "discipline_engine.db"
                 )
-                    .addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3)
                     .build()
                     .also { INSTANCE = it }
             }
