@@ -1,6 +1,11 @@
 package com.bhupendra.disciplineengine.ui.screens
 
+import android.Manifest
+import android.content.Intent
 import android.content.res.Configuration
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -32,9 +37,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bhupendra.disciplineengine.DisciplineApp
+import com.bhupendra.disciplineengine.alarm.AlarmForegroundService
+import com.bhupendra.disciplineengine.alarm.AlarmScheduler
+import com.bhupendra.disciplineengine.alarm.DirectBootAlarmStore
 import com.bhupendra.disciplineengine.data.DashboardSnapshot
 import com.bhupendra.disciplineengine.data.DisciplineDatabase
 import com.bhupendra.disciplineengine.data.DisciplineRepository
@@ -138,6 +147,7 @@ fun DashboardScreen() {
                         }
                     )
                 }
+                item { KillProofAlarmCard() }
                 item { RecentRpLogCard(data) }
             }
         }
@@ -188,6 +198,7 @@ fun DashboardScreen() {
                     }
                 )
             }
+            item { KillProofAlarmCard() }
             items(data.habits, key = { it.habitId }) { habit ->
                 HabitActionCard(habit = habit) {
                     scope.launch { snapshot = repository.completeHabit(habit.habitId) }
@@ -415,6 +426,62 @@ private fun RecentRpLogCard(data: DashboardSnapshot) {
                     Text(event.source, color = Color.White.copy(alpha = 0.85f), style = MaterialTheme.typography.bodySmall)
                     Text("$sign${event.rpDelta} RP", color = color, style = MaterialTheme.typography.bodySmall)
                 }
+            }
+        }
+    }
+}
+
+// Controls daily 5:30 AM kill-proof alarm schedule and immediate test trigger
+@Composable
+private fun KillProofAlarmCard() {
+    val context = LocalContext.current
+    val store = remember { DirectBootAlarmStore(context) }
+    var alarmEnabled by remember { mutableStateOf(store.isAlarmEnabled()) }
+    var alarmHour by remember { mutableStateOf(store.alarmHour()) }
+    var alarmMinute by remember { mutableStateOf(store.alarmMinute()) }
+
+    val notifPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            AlarmScheduler.scheduleDailyAlarm(context, alarmHour, alarmMinute)
+            alarmEnabled = true
+        }
+    }
+
+    val formattedTime = String.format("%02d:%02d", alarmHour, alarmMinute)
+    GlassCard(borderAccent = CyberCyan) {
+        Text("Kill-Proof Camera Alarm (3x3 Burst)", color = CyberCyan, fontWeight = FontWeight.SemiBold)
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = if (alarmEnabled) "Armed daily at $formattedTime (Direct-Boot ready)" else "Alarm disabled ($formattedTime)",
+            color = if (alarmEnabled) VerifiedEmerald else Color.White.copy(alpha = 0.7f),
+            style = MaterialTheme.typography.bodySmall
+        )
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(onClick = {
+                if (alarmEnabled) {
+                    AlarmScheduler.cancelDailyAlarm(context)
+                    alarmEnabled = false
+                } else {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        notifPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    } else {
+                        AlarmScheduler.scheduleDailyAlarm(context, alarmHour, alarmMinute)
+                        alarmEnabled = true
+                    }
+                }
+            }) {
+                Text(if (alarmEnabled) "Disarm Alarm" else "Arm $formattedTime")
+            }
+            OutlinedButton(onClick = {
+                val intent = Intent(context, AlarmForegroundService::class.java).apply {
+                    action = AlarmForegroundService.ACTION_START_ALARM
+                }
+                context.startForegroundService(intent)
+            }) {
+                Text("Test Alarm Now")
             }
         }
     }
