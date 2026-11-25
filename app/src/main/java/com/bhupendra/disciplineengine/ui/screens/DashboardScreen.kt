@@ -1,6 +1,7 @@
 package com.bhupendra.disciplineengine.ui.screens
 
 import android.Manifest
+import android.app.Activity
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
@@ -44,6 +45,7 @@ import com.bhupendra.disciplineengine.DisciplineApp
 import com.bhupendra.disciplineengine.alarm.AlarmForegroundService
 import com.bhupendra.disciplineengine.alarm.AlarmScheduler
 import com.bhupendra.disciplineengine.alarm.DirectBootAlarmStore
+import com.bhupendra.disciplineengine.camera.CameraVerifyActivity
 import com.bhupendra.disciplineengine.data.DashboardSnapshot
 import com.bhupendra.disciplineengine.data.DisciplineDatabase
 import com.bhupendra.disciplineengine.data.DisciplineRepository
@@ -67,6 +69,19 @@ fun DashboardScreen() {
     }
     var snapshot by remember { mutableStateOf<DashboardSnapshot?>(null) }
     var feedbackMessage by remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+
+    val pushupCameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode == Activity.RESULT_OK) {
+            val reps = result.data?.getIntExtra(CameraVerifyActivity.EXTRA_VERIFIED_REPS, 20) ?: 20
+            scope.launch {
+                snapshot = repository.recordVerifiedPushups(reps)
+                feedbackMessage = "Verified $reps reps via BlazePose/Watchdog!"
+            }
+        }
+    }
 
     LaunchedEffect(Unit) {
         snapshot = repository.loadDashboard()
@@ -140,7 +155,12 @@ fun DashboardScreen() {
                     DopamineBankCard(
                         data = data,
                         onPayPushups = {
-                            scope.launch { snapshot = repository.recordVerifiedPushups(20) }
+                            pushupCameraLauncher.launch(
+                                Intent(context, CameraVerifyActivity::class.java).apply {
+                                    putExtra(CameraVerifyActivity.EXTRA_TARGET_REPS, 20)
+                                    putExtra(CameraVerifyActivity.EXTRA_STRICT_MODE, true)
+                                }
+                            )
                         },
                         onSimulateBypass = {
                             scope.launch { snapshot = repository.triggerEmergencyBypass() }
@@ -191,7 +211,12 @@ fun DashboardScreen() {
                 DopamineBankCard(
                     data = data,
                     onPayPushups = {
-                        scope.launch { snapshot = repository.recordVerifiedPushups(20) }
+                        pushupCameraLauncher.launch(
+                            Intent(context, CameraVerifyActivity::class.java).apply {
+                                putExtra(CameraVerifyActivity.EXTRA_TARGET_REPS, 20)
+                                putExtra(CameraVerifyActivity.EXTRA_STRICT_MODE, true)
+                            }
+                        )
                     },
                     onSimulateBypass = {
                         scope.launch { snapshot = repository.triggerEmergencyBypass() }

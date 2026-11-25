@@ -1,12 +1,15 @@
 package com.bhupendra.disciplineengine.alarm
 
+import android.app.Activity
 import android.app.KeyguardManager
 import android.content.Intent
 import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -29,6 +32,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bhupendra.disciplineengine.DisciplineApp
+import com.bhupendra.disciplineengine.camera.CameraVerifyActivity
 import com.bhupendra.disciplineengine.data.DisciplineDatabase
 import com.bhupendra.disciplineengine.data.DisciplineRepository
 import com.bhupendra.disciplineengine.ui.components.GlassCard
@@ -64,6 +68,24 @@ class AlarmVerifyActivity : ComponentActivity() {
             DisciplineTheme {
                 val burst by AlarmForegroundService.burstState.collectAsState()
                 val scope = rememberCoroutineScope()
+                val cameraLauncher = rememberLauncherForActivityResult(
+                    contract = ActivityResultContracts.StartActivityForResult()
+                ) { result ->
+                    if (result.resultCode == Activity.RESULT_OK) {
+                        val verifiedReps = result.data?.getIntExtra(
+                            CameraVerifyActivity.EXTRA_VERIFIED_REPS,
+                            requiredPushups
+                        ) ?: requiredPushups
+                        scope.launch {
+                            val repo = DisciplineRepository(
+                                DisciplineDatabase.get(DisciplineApp.appContext).dao()
+                            )
+                            repo.completeHabit("habit_pushup_alarm")
+                            repo.recordVerifiedPushups(verifiedReps)
+                            dismissAlarmService()
+                        }
+                    }
+                }
 
                 Surface(Modifier.fillMaxSize(), color = BackgroundCanvas) {
                     Column(
@@ -97,17 +119,14 @@ class AlarmVerifyActivity : ComponentActivity() {
                                 modifier = Modifier.fillMaxWidth(),
                                 onClick = {
                                     notifyInteraction()
-                                    scope.launch {
-                                        val repo = DisciplineRepository(
-                                            DisciplineDatabase.get(DisciplineApp.appContext).dao()
-                                        )
-                                        repo.completeHabit("habit_pushup_alarm")
-                                        repo.recordVerifiedPushups(requiredPushups)
-                                        dismissAlarmService()
+                                    val camIntent = Intent(this@AlarmVerifyActivity, CameraVerifyActivity::class.java).apply {
+                                        putExtra(CameraVerifyActivity.EXTRA_TARGET_REPS, requiredPushups)
+                                        putExtra(CameraVerifyActivity.EXTRA_STRICT_MODE, true)
                                     }
+                                    cameraLauncher.launch(camIntent)
                                 }
                             ) {
-                                Text("Verify $requiredPushups Pushups (+25 RP)")
+                                Text("Start Camera Pushups ($requiredPushups reps -> +25 RP)")
                             }
 
                             Spacer(Modifier.height(10.dp))
@@ -130,7 +149,7 @@ class AlarmVerifyActivity : ComponentActivity() {
                         }
                         Spacer(Modifier.height(12.dp))
                         Text(
-                            text = "Camera BlazePose verification integrates in Phase 5",
+                            text = "BlazePose-Lite + 4s Watchdog + <5 Lux Torch Ready",
                             color = VerifiedEmerald.copy(alpha = 0.8f),
                             style = MaterialTheme.typography.labelSmall
                         )

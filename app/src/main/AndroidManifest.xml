@@ -46,6 +46,14 @@
             android:showWhenLocked="true"
             android:turnScreenOn="true" />
 
+        <activity
+            android:name=".camera.CameraVerifyActivity"
+            android:directBootAware="true"
+            android:exported="false"
+            android:screenOrientation="portrait"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true" />
+
         <service
             android:name=".alarm.AlarmForegroundService"
             android:directBootAware="true"

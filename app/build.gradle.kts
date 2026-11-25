@@ -43,6 +43,10 @@ android {
         compose = true
     }
 
+    androidResources {
+        noCompress += "task"
+    }
+
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
@@ -70,6 +74,14 @@ dependencies {
     ksp("androidx.room:room-compiler:2.6.1")
 
     implementation("androidx.navigation:navigation-compose:2.8.2")
+
+    // Phase 5: CameraX + MediaPipe BlazePose-Lite (bound strictly inside CameraVerifyActivity)
+    val cameraxVersion = "1.4.0"
+    implementation("androidx.camera:camera-core:$cameraxVersion")
+    implementation("androidx.camera:camera-camera2:$cameraxVersion")
+    implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
+    implementation("androidx.camera:camera-view:$cameraxVersion")
+    implementation("com.google.mediapipe:tasks-vision:0.10.14")
 
     testImplementation("junit:junit:4.13.2")
 }
