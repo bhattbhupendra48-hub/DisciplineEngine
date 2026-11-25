@@ -21,15 +21,15 @@
 
 ## 4. PHASE ROADMAP (build only the phase requested)
 - Phase 1 ✅ DONE: Clean Gradle structure, Dark Glassmorphism theme, Room DB (`habits_table`, `rp_events`, `streak_state`), test RP button
-- Phase 2: Real RP/rank logic (Bronze → Conqueror), streak S2/S4/S5 + miss detection, Illness/Travel mode, Dopamine Debt
-- Phase 3: Kill-proof alarm, full-screen intent, reboot resurrection receiver, 3x3 burst cycle
-- Phase 4: Schedule creator (7 questions + 8A buffer + 8C priority triage)
-- Phase 5: Camera pushup verification (MediaPipe BlazePose-Lite) + watchdogs (proximity/gyro/torch)
-- Phase 6: AccessibilityService Reels/Shorts blocker + 18+ Private DNS/Bloom filter + Settings guard
-- Phase 7: PW notification catcher + offline batch clock + exam triage engine
-- Phase 8: Apple Dock + Gaussian magnification + landscape two-pane layout
-- Phase 9: 365-day heatmap + 5-Axis RPG Radar + Urge-vs-Output native Canvas graphs
-- Phase 10: Device admin, HyperOS onboarding helper, hardening, polish
+- Phase 2 ✅ DONE: Real RP/rank logic (Bronze → Conqueror), streak S2/S4/S5 + miss detection, Illness/Travel mode, Dopamine Debt
+- Phase 3 ✅ DONE: Kill-proof alarm, full-screen intent, reboot resurrection receiver, 3x3 burst cycle
+- Phase 4 ✅ DONE: Schedule creator (7 questions + 8A buffer + 8C priority triage)
+- Phase 5 ✅ DONE: Camera pushup verification (MediaPipe BlazePose-Lite) + watchdogs (proximity/gyro/torch)
+- Phase 6 ✅ DONE: AccessibilityService Reels/Shorts blocker + 18+ Private DNS/Bloom filter + Settings guard
+- Phase 7 ✅ DONE: PW notification catcher + offline batch clock + exam triage engine
+- Phase 8 ✅ DONE: Apple Dock + Gaussian magnification + landscape two-pane layout
+- Phase 9 ✅ DONE: 365-day heatmap + 5-Axis RPG Radar + Urge-vs-Output native Canvas graphs
+- Phase 10 ✅ DONE: Device admin, HyperOS onboarding helper, hardening, polish
 
 ## 5. BUILD COMMAND
 - Local/CI: `gradle assembleDebug` (or `./gradlew assembleDebug`) -> `app/build/outputs/apk/debug/app-debug.apk`

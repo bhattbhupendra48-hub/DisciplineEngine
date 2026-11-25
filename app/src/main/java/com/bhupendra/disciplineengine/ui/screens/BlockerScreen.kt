@@ -40,6 +40,7 @@ import com.bhupendra.disciplineengine.blocker.PrivateDnsGuard
 import com.bhupendra.disciplineengine.camera.CameraVerifyActivity
 import com.bhupendra.disciplineengine.data.DisciplineDatabase
 import com.bhupendra.disciplineengine.data.DisciplineRepository
+import com.bhupendra.disciplineengine.system.HyperOsOnboardingHelper
 import com.bhupendra.disciplineengine.ui.components.GlassCard
 import com.bhupendra.disciplineengine.ui.theme.CyberCyan
 import com.bhupendra.disciplineengine.ui.theme.P1CriticalNeon
@@ -60,6 +61,9 @@ fun BlockerScreen(modifier: Modifier = Modifier) {
     var blockedToday by remember { mutableIntStateOf(0) }
     var reelsBank by remember { mutableIntStateOf(0) }
     var dopamineDebt by remember { mutableIntStateOf(0) }
+    var deviceAdminActive by remember { mutableStateOf(false) }
+    var batteryUnrestricted by remember { mutableStateOf(false) }
+    val isHyperOs = remember { HyperOsOnboardingHelper.isXiaomiOrPocoDevice() }
 
     // Refreshes service, DNS, and bank status whenever user enters Reel Shield tab
     fun refreshStatus() {
@@ -67,6 +71,8 @@ fun BlockerScreen(modifier: Modifier = Modifier) {
         privateDnsOk = PrivateDnsGuard.isPrivateDnsEnforced(context)
         privateDnsText = PrivateDnsGuard.currentSpecifier(context)
         blockedToday = blockerStore.getBlockedToday()
+        deviceAdminActive = HyperOsOnboardingHelper.isDeviceAdminActive(context)
+        batteryUnrestricted = HyperOsOnboardingHelper.isBatteryUnrestricted(context)
         scope.launch {
             val streak = DisciplineDatabase.get(DisciplineApp.appContext).dao().getStreak()
             reelsBank = streak?.reelsTimeBankMinutes ?: 0
@@ -152,6 +158,57 @@ fun BlockerScreen(modifier: Modifier = Modifier) {
                     onClick = { refreshStatus() }
                 ) {
                     Text("Refresh Guard Status")
+                }
+            }
+        }
+
+        item {
+            GlassCard(borderAccent = if (deviceAdminActive && batteryUnrestricted) VerifiedEmerald else XpRankGold) {
+                Text("Device Admin & HyperOS Hardening", color = CyberCyan, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = "Device Admin Shield: ${if (deviceAdminActive) "ACTIVE (Uninstall Blocked)" else "INACTIVE"}",
+                    color = if (deviceAdminActive) VerifiedEmerald else P1CriticalNeon
+                )
+                Text(
+                    text = "Battery Saver Exemption: ${if (batteryUnrestricted) "NO RESTRICTIONS" else "RESTRICTED"}",
+                    color = if (batteryUnrestricted) VerifiedEmerald else XpRankGold
+                )
+                if (isHyperOs) {
+                    Text(
+                        text = "Xiaomi / POCO HyperOS detected: enable Autostart, No Restrictions & Background Pop-ups.",
+                        color = XpRankGold,
+                        style = MaterialTheme.typography.bodySmall
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                Button(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { HyperOsOnboardingHelper.launchDeviceAdminPrompt(context) },
+                    enabled = !deviceAdminActive
+                ) {
+                    Text(if (deviceAdminActive) "Device Admin Shield Enabled" else "Enable Anti-Uninstall Device Admin")
+                }
+                Spacer(Modifier.height(6.dp))
+                OutlinedButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { HyperOsOnboardingHelper.openBatteryNoRestrictions(context) }
+                ) {
+                    Text("Set Battery to No Restrictions")
+                }
+                Spacer(Modifier.height(6.dp))
+                OutlinedButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { HyperOsOnboardingHelper.openHyperOsAutostart(context) }
+                ) {
+                    Text("Enable HyperOS Autostart")
+                }
+                Spacer(Modifier.height(6.dp))
+                OutlinedButton(
+                    modifier = Modifier.fillMaxWidth(),
+                    onClick = { HyperOsOnboardingHelper.openHyperOsPopupPermissions(context) }
+                ) {
+                    Text("Allow Background Pop-ups / Restricted Settings")
                 }
             }
         }

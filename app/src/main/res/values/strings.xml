@@ -1,4 +1,5 @@
 <resources>
     <string name="app_name">Discipline Engine</string>
     <string name="accessibility_service_desc">Surgical zero-VPN blocker for YouTube Shorts, Instagram Reels, adult URLs, and Settings anti-tamper protection.</string>
+    <string name="device_admin_desc">Prevents impulsive uninstallation of Discipline Engine during active study locks.</string>
 </resources>

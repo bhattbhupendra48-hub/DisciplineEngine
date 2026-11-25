@@ -45,6 +45,7 @@ import com.bhupendra.disciplineengine.DisciplineApp
 import com.bhupendra.disciplineengine.alarm.AlarmForegroundService
 import com.bhupendra.disciplineengine.alarm.AlarmScheduler
 import com.bhupendra.disciplineengine.alarm.DirectBootAlarmStore
+import com.bhupendra.disciplineengine.audio.GameSfxPlayer
 import com.bhupendra.disciplineengine.camera.CameraVerifyActivity
 import com.bhupendra.disciplineengine.data.DashboardSnapshot
 import com.bhupendra.disciplineengine.data.DisciplineDatabase
@@ -121,7 +122,10 @@ fun DashboardScreen(allowInternalSplit: Boolean = true) {
                 }
                 items(data.habits, key = { it.habitId }) { habit ->
                     HabitActionCard(habit = habit) {
-                        scope.launch { snapshot = repository.completeHabit(habit.habitId) }
+                        scope.launch {
+                            snapshot = repository.completeHabit(habit.habitId)
+                            GameSfxPlayer.playTaskCompleteChime()
+                        }
                     }
                 }
             }
@@ -227,7 +231,10 @@ fun DashboardScreen(allowInternalSplit: Boolean = true) {
             item { KillProofAlarmCard() }
             items(data.habits, key = { it.habitId }) { habit ->
                 HabitActionCard(habit = habit) {
-                    scope.launch { snapshot = repository.completeHabit(habit.habitId) }
+                    scope.launch {
+                        snapshot = repository.completeHabit(habit.habitId)
+                        GameSfxPlayer.playTaskCompleteChime()
+                    }
                 }
             }
             item { RecentRpLogCard(data) }
