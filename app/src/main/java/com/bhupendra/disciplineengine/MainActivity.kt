@@ -15,6 +15,7 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import com.bhupendra.disciplineengine.ui.screens.BlockerScreen
 import com.bhupendra.disciplineengine.ui.screens.DashboardScreen
 import com.bhupendra.disciplineengine.ui.screens.ScheduleScreen
 import com.bhupendra.disciplineengine.ui.theme.BackgroundCanvas
@@ -44,13 +45,20 @@ class MainActivity : ComponentActivity() {
                                 icon = { Text("8A") },
                                 label = { Text("Schedule") }
                             )
+                            NavigationBarItem(
+                                selected = selectedTab == 2,
+                                onClick = { selectedTab = 2 },
+                                icon = { Text("SH") },
+                                label = { Text("Reel Shield") }
+                            )
                         }
                     }
                 ) { innerPadding ->
                     Box(Modifier.fillMaxSize().padding(innerPadding)) {
                         when (selectedTab) {
                             0 -> DashboardScreen()
-                            else -> ScheduleScreen()
+                            1 -> ScheduleScreen()
+                            else -> BlockerScreen()
                         }
                     }
                 }
