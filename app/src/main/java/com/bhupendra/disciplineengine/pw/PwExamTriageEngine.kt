@@ -10,7 +10,7 @@ enum class TriageStrategy(val label: String) {
     FULL_BATCH_1_0X("Full Batch Lecture + DPP"),
     FULL_BATCH_1_5X("Hard Tier: Full Batch @ 1.5x + DPP"),
     ONESHOT_2H_PRACTICE("Medium Tier: 2h One-Shot + 30m Practice"),
-    NOTES_AND_PYQ("Easy Tier: Class Notes PDF + NCERT/PYQs")
+    NOTES_AND_PYQ("Skip Full Batch: Class Notes + NCERT/PYQs")
 }
 
 // Per-chapter recommendation entry shown in the Exam Triage Matrix

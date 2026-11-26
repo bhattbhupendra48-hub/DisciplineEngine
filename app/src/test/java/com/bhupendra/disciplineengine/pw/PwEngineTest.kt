@@ -84,4 +84,28 @@ class PwEngineTest {
         val repeatSameDay = OfflineBatchClockEngine.advanceClock(afterClass.updatedSlots, afterClass.updatedChapters, epochDay, 1200)
         assertEquals(0, repeatSameDay.newlyAddedLectures)
     }
+
+    // Verifies syllabus presets and generated One-Shot tasks are offline and link to YouTube search
+    @Test
+    fun presetsAndDailyTasksAreGeneratedWithSearchLinks() {
+        val preset = OfflineBatchClockEngine.samplePreset("NEET 2.0")
+        assertTrue(preset.any { it.subjectName == "Biology" })
+        assertEquals(4, preset.size)
+        val chapter = preset.first { it.difficultyWeightageTier == "TIER2_MEDIUM_ONESHOT" }
+        val task = OfflineBatchClockEngine.generateDayByDayPlan(
+            listOf(ChapterTriageItem(chapter, TriageStrategy.ONESHOT_2H_PRACTICE, 150)),
+            todayEpochDay = 20_000L,
+            daysRemaining = 10L
+        ).single()
+        assertTrue(task.youtubeSearchUrl.startsWith("https://www.youtube.com/results?search_query="))
+        assertEquals(20_000L, task.dateEpochDay)
+    }
+
+    // Verifies pasted plain text syllabus rows parse into local chapter records
+    @Test
+    fun pastedSyllabusRowsParseWithoutNetwork() {
+        val parsed = OfflineBatchClockEngine.parseBatchCsv("Physics|Electrostatics|8|2|TIER1_HARD_FULL_BATCH")
+        assertEquals("Electrostatics", parsed.single().chapterName)
+        assertEquals(2, parsed.single().completedLectures)
+    }
 }

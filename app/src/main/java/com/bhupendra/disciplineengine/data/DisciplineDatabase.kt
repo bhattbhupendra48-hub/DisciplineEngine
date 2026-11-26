@@ -148,6 +148,18 @@ data class PwBatchSlotEntity(
     val lastProcessedEpochDay: Long? = null
 )
 
+@Entity(tableName = "pw_study_tasks")
+data class PwStudyTaskEntity(
+    @PrimaryKey val taskId: String,
+    val dateEpochDay: Long,
+    val chapterId: String,
+    val title: String,
+    val strategy: String,
+    val estimatedMinutes: Int,
+    val youtubeSearchUrl: String,
+    val isCompleted: Boolean = false
+)
+
 @Dao
 interface DisciplineDao {
     // Returns all logged RP events from newest to oldest
@@ -222,6 +234,10 @@ interface DisciplineDao {
     @Query("SELECT * FROM pw_syllabus_and_backlog ORDER BY subjectName ASC")
     suspend fun getAllPwChapters(): List<PwSyllabusEntity>
 
+    // Deletes imported chapters before switching syllabus presets
+    @Query("DELETE FROM pw_syllabus_and_backlog")
+    suspend fun clearPwChapters()
+
     // Inserts or updates PW chapters in bulk
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertPwChapters(chapters: List<PwSyllabusEntity>)
@@ -249,6 +265,22 @@ interface DisciplineDao {
     // Saves offline batch clock slots
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertPwBatchSlots(slots: List<PwBatchSlotEntity>)
+
+    // Lists study checklist tasks by date, including completion state
+    @Query("SELECT * FROM pw_study_tasks WHERE dateEpochDay >= :fromEpochDay ORDER BY dateEpochDay ASC, title ASC")
+    suspend fun getPwStudyTasks(fromEpochDay: Long): List<PwStudyTaskEntity>
+
+    // Inserts generated plan tasks without resetting completed checklist rows
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertPwStudyTasks(tasks: List<PwStudyTaskEntity>)
+
+    // Finds one study task by its stable ID
+    @Query("SELECT * FROM pw_study_tasks WHERE taskId = :taskId LIMIT 1")
+    suspend fun getPwStudyTask(taskId: String): PwStudyTaskEntity?
+
+    // Saves a completed study task
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertPwStudyTask(task: PwStudyTaskEntity)
 }
 
 @Database(
@@ -261,9 +293,10 @@ interface DisciplineDao {
         ScheduleProfileEntity::class,
         PwSyllabusEntity::class,
         PwNoticeTestEntity::class,
-        PwBatchSlotEntity::class
+        PwBatchSlotEntity::class,
+        PwStudyTaskEntity::class
     ],
-    version = 4,
+    version = 5,
     exportSchema = true
 )
 abstract class DisciplineDatabase : RoomDatabase() {
@@ -410,6 +443,13 @@ abstract class DisciplineDatabase : RoomDatabase() {
             }
         }
 
+        // Adds the persistent PW day-by-day checklist
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("""CREATE TABLE IF NOT EXISTS pw_study_tasks (taskId TEXT NOT NULL PRIMARY KEY, dateEpochDay INTEGER NOT NULL, chapterId TEXT NOT NULL, title TEXT NOT NULL, strategy TEXT NOT NULL, estimatedMinutes INTEGER NOT NULL, youtubeSearchUrl TEXT NOT NULL, isCompleted INTEGER NOT NULL)""")
+            }
+        }
+
         // Returns the singleton Room database instance with registered migrations
         fun get(context: Context): DisciplineDatabase =
             INSTANCE ?: synchronized(this) {
@@ -418,7 +458,7 @@ abstract class DisciplineDatabase : RoomDatabase() {
                     DisciplineDatabase::class.java,
                     "discipline_engine.db"
                 )
-                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+                    .addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
                     .build()
                     .also { INSTANCE = it }
             }

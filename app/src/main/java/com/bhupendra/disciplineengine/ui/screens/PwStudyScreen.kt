@@ -1,9 +1,6 @@
 package com.bhupendra.disciplineengine.ui.screens
 
-import android.content.ComponentName
-import android.content.Context
 import android.content.Intent
-import android.provider.Settings
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -16,6 +13,7 @@ import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
@@ -30,6 +28,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.bhupendra.disciplineengine.DisciplineApp
@@ -38,7 +37,6 @@ import com.bhupendra.disciplineengine.data.PwDashboardSnapshot
 import com.bhupendra.disciplineengine.data.PwNoticeTestEntity
 import com.bhupendra.disciplineengine.data.PwRepository
 import com.bhupendra.disciplineengine.pw.ChapterTriageItem
-import com.bhupendra.disciplineengine.pw.PWNotificationCatcherService
 import com.bhupendra.disciplineengine.pw.PwItemType
 import com.bhupendra.disciplineengine.pw.TriageStrategy
 import com.bhupendra.disciplineengine.ui.components.GlassCard
@@ -62,13 +60,11 @@ fun PwStudyScreen(modifier: Modifier = Modifier) {
     }
 
     var snapshot by remember { mutableStateOf<PwDashboardSnapshot?>(null) }
-    var listenerEnabled by remember { mutableStateOf(false) }
     var showCsvImport by remember { mutableStateOf(false) }
     var csvInput by remember { mutableStateOf("Physics,Electrostatics,8,0,TIER1_HARD_FULL_BATCH") }
     var launchFeedback by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(Unit) {
-        listenerEnabled = isNotificationListenerEnabled(context)
         snapshot = repository.loadPwDashboard()
     }
 
@@ -88,8 +84,8 @@ fun PwStudyScreen(modifier: Modifier = Modifier) {
                 )
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = "PW Notice Catcher: ${if (listenerEnabled) "ACTIVE (Zero-Ban)" else "NEEDS PERMISSION"}",
-                    color = if (listenerEnabled) VerifiedEmerald else XpRankGold,
+                    text = "Offline planner • syllabus data stays on this device",
+                    color = VerifiedEmerald,
                     style = MaterialTheme.typography.bodySmall
                 )
                 if (data.batchClockAddedLectures > 0) {
@@ -103,7 +99,7 @@ fun PwStudyScreen(modifier: Modifier = Modifier) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = {
                         val pwIntent = context.packageManager.getLaunchIntentForPackage(
-                            PWNotificationCatcherService.PW_PACKAGE
+                            "xyz.penpencil.physicswallah"
                         )
                         if (pwIntent != null) {
                             context.startActivity(pwIntent)
@@ -112,20 +108,6 @@ fun PwStudyScreen(modifier: Modifier = Modifier) {
                         }
                     }) {
                         Text("1-Tap Launch PW")
-                    }
-                    OutlinedButton(onClick = {
-                        context.startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
-                    }) {
-                        Text("Notif Access")
-                    }
-                }
-                if (data.passiveSyncPendingCount > 0) {
-                    Spacer(Modifier.height(8.dp))
-                    Button(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { scope.launch { snapshot = repository.claimPassiveScreenSync() } }
-                    ) {
-                        Text("Claim Passive PW Lecture Sync (+30 RP)")
                     }
                 }
                 if (launchFeedback != null) {
@@ -152,6 +134,8 @@ fun PwStudyScreen(modifier: Modifier = Modifier) {
                 )
                 Spacer(Modifier.height(8.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedButton(onClick = { scope.launch { snapshot = repository.applyPreset("NEET 2.0") } }) { Text("NEET 2.0") }
+                    OutlinedButton(onClick = { scope.launch { snapshot = repository.applyPreset("JEE 2.0") } }) { Text("JEE 2.0") }
                     OutlinedButton(onClick = {
                         scope.launch {
                             snapshot = repository.updateExamTarget(data.examDaysAhead - 7, data.dailySelfStudyHours)
@@ -163,7 +147,7 @@ fun PwStudyScreen(modifier: Modifier = Modifier) {
                         }
                     }) { Text("+7d Exam") }
                     OutlinedButton(onClick = { showCsvImport = !showCsvImport }) {
-                        Text("CSV Import")
+                        Text("Paste / CSV")
                     }
                 }
                 if (showCsvImport) {
@@ -180,7 +164,30 @@ fun PwStudyScreen(modifier: Modifier = Modifier) {
                             snapshot = repository.importBatchCsv(csvInput)
                             showCsvImport = false
                         }
-                    }) { Text("Import Syllabus Row") }
+                    }) { Text("Import Text / CSV") }
+                }
+            }
+        }
+
+        item {
+            GlassCard(borderAccent = CyberCyan) {
+                Text("Day-by-Day Exam Plan", color = CyberCyan, fontWeight = FontWeight.Bold)
+                Text("Full Batch, YouTube One-Shot, or Skip / Notes & PYQ. Check off completed study for +30 RP.", color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodySmall)
+            }
+        }
+
+        items(data.studyTasks, key = { it.taskId }) { task ->
+            val uriHandler = LocalUriHandler.current
+            GlassCard(borderAccent = if (task.isCompleted) VerifiedEmerald else CyberCyan) {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                    Checkbox(checked = task.isCompleted, onCheckedChange = { checked ->
+                        if (checked) scope.launch { snapshot = repository.completeStudyTask(task.taskId) }
+                    })
+                    Column(Modifier.weight(1f)) {
+                        Text("${LocalDate.ofEpochDay(task.dateEpochDay)} • ${task.title}", color = Color.White, fontWeight = FontWeight.SemiBold)
+                        Text("${task.estimatedMinutes} min", color = XpRankGold, style = MaterialTheme.typography.labelSmall)
+                    }
+                    if (task.strategy == "ONESHOT_2H_PRACTICE") OutlinedButton(onClick = { uriHandler.openUri(task.youtubeSearchUrl) }) { Text("YouTube") }
                 }
             }
         }
@@ -282,11 +289,4 @@ private fun NoticeOrTestCard(
             }
         }
     }
-}
-
-// Checks Android Notification Listener permissions for PWNotificationCatcherService
-private fun isNotificationListenerEnabled(context: Context): Boolean {
-    val flat = Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners") ?: return false
-    val target = ComponentName(context, PWNotificationCatcherService::class.java).flattenToString()
-    return flat.split(":").any { it.equals(target, ignoreCase = true) }
 }

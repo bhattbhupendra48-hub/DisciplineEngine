@@ -73,16 +73,6 @@
                 android:resource="@xml/discipline_accessibility_config" />
         </service>
 
-        <service
-            android:name=".pw.PWNotificationCatcherService"
-            android:exported="true"
-            android:label="Discipline Engine PW Notice Catcher"
-            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
-            <intent-filter>
-                <action android:name="android.service.notification.NotificationListenerService" />
-            </intent-filter>
-        </service>
-
         <receiver
             android:name=".blocker.DisciplineDeviceAdminReceiver"
             android:description="@string/device_admin_desc"

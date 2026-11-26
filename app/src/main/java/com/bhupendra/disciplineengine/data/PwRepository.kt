@@ -19,7 +19,8 @@ data class PwDashboardSnapshot(
     val examDaysAhead: Int,
     val dailySelfStudyHours: Float,
     val passiveSyncPendingCount: Int,
-    val batchClockAddedLectures: Int
+    val batchClockAddedLectures: Int,
+    val studyTasks: List<PwStudyTaskEntity>
 )
 
 class PwRepository(
@@ -60,6 +61,7 @@ class PwRepository(
             examDateEpochDay = todayEpoch + examDaysAhead,
             dailySelfStudyHours = dailyStudyHours
         )
+        dao.insertPwStudyTasks(OfflineBatchClockEngine.generateDayByDayPlan(plan.items, todayEpoch, plan.daysRemaining))
 
         val passivePrefs = appContext.getSharedPreferences("pw_passive_sync", Context.MODE_PRIVATE)
         val lastSeenMs = passivePrefs.getLong("last_pw_lecture_seen_ms", 0L)
@@ -73,7 +75,8 @@ class PwRepository(
             examDaysAhead = examDaysAhead,
             dailySelfStudyHours = dailyStudyHours,
             passiveSyncPendingCount = pendingPassive,
-            batchClockAddedLectures = clockOutcome.newlyAddedLectures
+            batchClockAddedLectures = clockOutcome.newlyAddedLectures,
+            studyTasks = dao.getPwStudyTasks(todayEpoch)
         )
     }
 
@@ -128,6 +131,23 @@ class PwRepository(
         val parsed = OfflineBatchClockEngine.parseBatchCsv(csvText)
         if (parsed.isNotEmpty()) {
             dao.upsertPwChapters(parsed)
+        }
+        loadPwDashboard()
+    }
+
+    // Replaces syllabus with an offline preset without contacting Physics Wallah services
+    suspend fun applyPreset(name: String): PwDashboardSnapshot = withContext(Dispatchers.IO) {
+        dao.clearPwChapters()
+        dao.upsertPwChapters(OfflineBatchClockEngine.samplePreset(name))
+        loadPwDashboard()
+    }
+
+    // Completes a daily checklist task once and awards the standard +30 PW Block RP
+    suspend fun completeStudyTask(taskId: String): PwDashboardSnapshot = withContext(Dispatchers.IO) {
+        val task = dao.getPwStudyTask(taskId)
+        if (task != null && !task.isCompleted) {
+            dao.upsertPwStudyTask(task.copy(isCompleted = true))
+            dao.addRpEvent(RpEventEntity(timestamp = System.currentTimeMillis(), source = RpSource.PW_BLOCK.name, rpDelta = RpSource.PW_BLOCK.rpDelta))
         }
         loadPwDashboard()
     }

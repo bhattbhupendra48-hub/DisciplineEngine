@@ -22,11 +22,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -70,6 +72,7 @@ fun DashboardScreen(allowInternalSplit: Boolean = true) {
     }
     var snapshot by remember { mutableStateOf<DashboardSnapshot?>(null) }
     var feedbackMessage by remember { mutableStateOf<String?>(null) }
+    var showFeatureGuide by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     val pushupCameraLauncher = rememberLauncherForActivityResult(
@@ -117,7 +120,8 @@ fun DashboardScreen(allowInternalSplit: Boolean = true) {
                         data = data,
                         onEquipTitle = { title ->
                             scope.launch { snapshot = repository.equipTitle(title) }
-                        }
+                        },
+                        onShowGuide = { showFeatureGuide = true }
                     )
                 }
                 items(data.habits, key = { it.habitId }) { habit ->
@@ -186,7 +190,8 @@ fun DashboardScreen(allowInternalSplit: Boolean = true) {
                     data = data,
                     onEquipTitle = { title ->
                         scope.launch { snapshot = repository.equipTitle(title) }
-                    }
+                    },
+                    onShowGuide = { showFeatureGuide = true }
                 )
             }
             item {
@@ -240,6 +245,15 @@ fun DashboardScreen(allowInternalSplit: Boolean = true) {
             item { RecentRpLogCard(data) }
         }
     }
+
+    if (showFeatureGuide) {
+        AlertDialog(
+            onDismissRequest = { showFeatureGuide = false },
+            title = { Text("How to Use & Features") },
+            text = { Text("PW Study AI: choose a NEET/JEE preset or paste syllabus, set the exam countdown, open One-Shot searches, and check off study for +30 RP.\n\nSchedule: complete setup and follow daily P1/P2/P3 blocks and buffers.\n\nPushup Alarm / Camera: arm the alarm when ready; camera verification opens only when you start a pushup task.\n\nReels Blocker: enable Accessibility only when activating the blocker, then choose app and DNS guard settings.\n\nRPG Rank & Analytics: complete habits and review RP, streak, rank, heatmap, radar, and activity trends.") },
+            confirmButton = { TextButton(onClick = { showFeatureGuide = false }) { Text("Got it") } }
+        )
+    }
 }
 
 // Displays RP rank tier progress, equipped title chips, and Ghost Rival delta
@@ -247,7 +261,8 @@ fun DashboardScreen(allowInternalSplit: Boolean = true) {
 @Composable
 private fun RankBannerCard(
     data: DashboardSnapshot,
-    onEquipTitle: (String) -> Unit
+    onEquipTitle: (String) -> Unit,
+    onShowGuide: () -> Unit
 ) {
     val rank = data.rankProgress
     val state = data.streakState
@@ -272,6 +287,7 @@ private fun RankBannerCard(
             color = Color.White.copy(alpha = 0.85f),
             style = MaterialTheme.typography.bodySmall
         )
+        OutlinedButton(onClick = onShowGuide) { Text("How to Use & Features") }
         Spacer(Modifier.height(8.dp))
         LinearProgressIndicator(
             progress = { rank.progressFraction },
